@@ -1,0 +1,6 @@
+# Codex
+.codex/
+
+# direnv
+.env*
+

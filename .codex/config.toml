@@ -1,0 +1,13 @@
+[projects."/home/zsoltk/git/code-stats"]
+trust_level = "trusted"
+
+# Context7 MCP server for coding
+[mcp_servers.context7]
+args = ["-y", "@upstash/context7-mcp"]
+command = "npx"
+startup_timeout_sec=30
+
+# Limited network
+[sandbox_workspace_write]
+network_access = true
+
