@@ -1,3 +1,4 @@
+model = "gpt-5.1-codex-max"
 [projects."/home/zsoltk/git/code-stats"]
 trust_level = "trusted"
 
@@ -10,4 +11,7 @@ startup_timeout_sec=30
 # Limited network
 [sandbox_workspace_write]
 network_access = true
+
+[notice]
+"hide_gpt-5.1-codex-max_migration_prompt" = true
 

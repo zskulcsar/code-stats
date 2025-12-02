@@ -4,3 +4,6 @@
 # direnv
 .env*
 
+# Go
+**/.gocache
+**/dist
