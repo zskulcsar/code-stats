@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"go/ast"
 	"math"
-	"strings"
 )
 
 // Halstead metrics, see https://en.wikipedia.org/wiki/Halstead_complexity_measures
@@ -67,23 +66,8 @@ func (hm *HalsteadMetric) calculate() {
 }
 
 func (hm *HalsteadMetric) String() string {
-	var sb = strings.Builder{}
-	sb.WriteString("\"Halstead\",")
-	sb.WriteString(fmt.Sprintf("%.2f", hm.Vocabulary()))
-	sb.WriteString(",")
-	sb.WriteString(fmt.Sprintf("%.2f", hm.Length()))
-	sb.WriteString(",")
-	sb.WriteString(fmt.Sprintf("%.2f", hm.EstimatedLength()))
-	sb.WriteString(",")
-	sb.WriteString(fmt.Sprintf("%.2f", hm.Volume()))
-	sb.WriteString(",")
-	sb.WriteString(fmt.Sprintf("%.2f", hm.Difficulty()))
-	sb.WriteString(",")
-	sb.WriteString(fmt.Sprintf("%.2f", hm.Effort()))
-	sb.WriteString(
-		fmt.Sprintf(" :: n1 = %.2f, n2 = %.2f, N1 = %.2f, N2 = %.2f",
-			hm.fn1, hm.fn2, hm.fN1, hm.fN2))
-	return sb.String()
+	return fmt.Sprintf("Halstead,%.2f,%2.f,%.2f,%.2f,%.2f,%.2f",
+		hm.Vocabulary(), hm.Length(), hm.EstimatedLength(), hm.Volume(), hm.Difficulty(), hm.Effort())
 }
 
 func (hm *HalsteadMetric) Visit(node ast.Node) (w ast.Visitor) {

@@ -1,11 +1,10 @@
 package metrics
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"math"
-	"strconv"
-	"strings"
 )
 
 // Assingments
@@ -35,21 +34,7 @@ func (abcm *ABCMetric) Visit(node ast.Node) (w ast.Visitor) {
 	switch t := node.(type) {
 	// Set the signature
 	case *ast.FuncDecl:
-		var sb = strings.Builder{}
-		sb.WriteString(t.Name.String())
-		sb.WriteString("(")
-
-		params := t.Type.Params.List
-		for i, v := range params {
-			if v.Names != nil {
-				sb.WriteString(v.Names[0].Name)
-				if i < len(params)-1 {
-					sb.WriteString(", ")
-				}
-			}
-		}
-		sb.WriteString(")")
-		abcm.signature = sb.String()
+		abcm.signature = GetFuncSignature(t)
 	// Assingments
 	case *ast.AssignStmt:
 		abcm.Assingment()
@@ -137,16 +122,6 @@ func (abcm *ABCMetric) CodeSize() int {
 }
 
 func (abcm *ABCMetric) String() string {
-	var sb = strings.Builder{}
-	sb.WriteString("ABC,\"")
-	sb.WriteString(abcm.signature)
-	sb.WriteString("\",")
-	sb.WriteString(strconv.Itoa(abcm.CodeSize()))
-	sb.WriteString(",")
-	sb.WriteString(strconv.Itoa(abcm.assingments))
-	sb.WriteString(",")
-	sb.WriteString(strconv.Itoa(abcm.branches))
-	sb.WriteString(",")
-	sb.WriteString(strconv.Itoa(abcm.conditionals))
-	return sb.String()
+	return fmt.Sprintf("ABC,\"%s\",%d,%d,%d,%d",
+		abcm.signature, abcm.CodeSize(), abcm.assingments, abcm.branches, abcm.conditionals)
 }
