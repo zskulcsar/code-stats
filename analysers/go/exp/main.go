@@ -59,11 +59,13 @@ func main() {
 	}
 
 	// Stats:
-	fmt.Printf("Printing stats.\n")
+	fmt.Printf("\n*** Printing stats.\n\n")
 	for _, fm := range fileMetrics {
 		fmt.Printf("%s\n", fm.String())
 		var fileABCMetric = fm.FileABCMetric()
 		fmt.Printf("%s\n", fileABCMetric.String())
+		var fileHalsteadMetric = fm.FileHalstead()
+		fmt.Printf("%s\n", fileHalsteadMetric.String())
 		for _, abcm := range fm.ABCMetrics() {
 			fmt.Printf("\t%s\n", abcm.String())
 		}

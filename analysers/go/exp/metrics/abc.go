@@ -41,9 +41,11 @@ func (abcm *ABCMetric) Visit(node ast.Node) (w ast.Visitor) {
 
 		params := t.Type.Params.List
 		for i, v := range params {
-			sb.WriteString(v.Names[0].Name)
-			if i < len(params)-1 {
-				sb.WriteString(", ")
+			if v.Names != nil {
+				sb.WriteString(v.Names[0].Name)
+				if i < len(params)-1 {
+					sb.WriteString(", ")
+				}
 			}
 		}
 		sb.WriteString(")")
