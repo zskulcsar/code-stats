@@ -66,8 +66,11 @@ func main() {
 		fmt.Printf("%s\n", fileABCMetric.String())
 		var fileHalsteadMetric = fm.FileHalstead()
 		fmt.Printf("%s\n", fileHalsteadMetric.String())
-		for _, abcm := range fm.ABCMetrics() {
+		// Kinda ugly, but for testing it's fine
+		ccms := fm.FileCyclomaticComplexity()
+		for i, abcm := range fm.ABCMetrics() {
 			fmt.Printf("\t%s\n", abcm.String())
+			fmt.Printf("\t%s\n", ccms[i].String())
 		}
 	}
 }

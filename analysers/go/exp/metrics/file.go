@@ -3,8 +3,6 @@ package metrics
 import (
 	"fmt"
 	"go/ast"
-	"strconv"
-	"strings"
 )
 
 // Simple file based metrics
@@ -13,7 +11,8 @@ type FileMetric struct {
 	fileABCMetric ABCMetric
 	abcMetrics    []ABCMetric
 	fileHalstead  HalsteadMetric
-	// Metrics
+	cycloCMetric  []CyclomaticComplexityMetric
+	// Basic file metrics
 	nrOfImports              int
 	nrOfFunctionDeclarations int
 	nrOfLines                FileClocStat
@@ -26,6 +25,7 @@ func NewFileMetric(fileName string) FileMetric {
 	fm.fileName = fileName
 	fm.fileABCMetric = ABCMetric{signature: fileName}
 	fm.fileHalstead.Init()
+	fm.cycloCMetric = make([]CyclomaticComplexityMetric, 0)
 	return fm
 }
 
@@ -45,6 +45,10 @@ func (fm *FileMetric) FileHalstead() (fileHalstead HalsteadMetric) {
 	return fm.fileHalstead
 }
 
+func (fm *FileMetric) FileCyclomaticComplexity() (cycloComplexity []CyclomaticComplexityMetric) {
+	return fm.cycloCMetric
+}
+
 func (fm *FileMetric) GenerateMetrics(tree *ast.File) (err error) {
 	// Basic code metrics: imports, functions, structures
 	fmt.Printf("--- %s\n", fm.fileName)
@@ -56,6 +60,8 @@ func (fm *FileMetric) GenerateMetrics(tree *ast.File) (err error) {
 			fm.nrOfFunctionDeclarations++
 			// We generate the ABC metric on the function level
 			fm.GenerateABCMetrics(n)
+			// Calculate the Cyclomatic Complexity on the function level
+			fm.GenerateCyclomaticComplexity(n)
 		case *ast.StructType:
 			fm.nrOfStructs++
 		}
@@ -87,6 +93,12 @@ func (fm *FileMetric) GenerateHalsteadMetrics(node ast.Node) {
 	ast.Walk(&fm.fileHalstead, node)
 }
 
+func (fm *FileMetric) GenerateCyclomaticComplexity(node ast.Node) {
+	var ccm = CyclomaticComplexityMetric{}
+	ast.Walk(&ccm, node)
+	fm.cycloCMetric = append(fm.cycloCMetric, ccm)
+}
+
 func (fm *FileMetric) CodeSize() (codeSize int) {
 	return fm.fileABCMetric.CodeSize()
 }
@@ -101,16 +113,6 @@ func (fm *FileMetric) calcABCSum() (fileABCM ABCMetric) {
 }
 
 func (fm *FileMetric) String() string {
-	var sb = strings.Builder{}
-	sb.WriteString("File,\"")
-	sb.WriteString(fm.fileName)
-	sb.WriteString("\",")
-	sb.WriteString(strconv.Itoa(fm.nrOfImports))
-	sb.WriteString(",")
-	sb.WriteString(strconv.Itoa(fm.nrOfFunctionDeclarations))
-	sb.WriteString(",")
-	sb.WriteString(strconv.Itoa(fm.nrOfLines.Go.Code))
-	sb.WriteString(",")
-	sb.WriteString(strconv.Itoa(fm.nrOfStructs))
-	return sb.String()
+	return fmt.Sprintf("File,\"%s\",%d,%d,%d,%d",
+		fm.FileName(), fm.nrOfImports, fm.nrOfFunctionDeclarations, fm.nrOfLines.Go.Code, fm.nrOfStructs)
 }
