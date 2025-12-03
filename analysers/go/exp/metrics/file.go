@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"fmt"
 	"go/ast"
 	"strconv"
 	"strings"
@@ -11,6 +12,7 @@ type FileMetric struct {
 	fileName      string
 	fileABCMetric ABCMetric
 	abcMetrics    []ABCMetric
+	fileHalstead  HalsteadMetric
 	// Metrics
 	nrOfImports              int
 	nrOfFunctionDeclarations int
@@ -23,6 +25,7 @@ func NewFileMetric(fileName string) FileMetric {
 	fm.abcMetrics = make([]ABCMetric, 0)
 	fm.fileName = fileName
 	fm.fileABCMetric = ABCMetric{signature: fileName}
+	fm.fileHalstead.Init()
 	return fm
 }
 
@@ -38,18 +41,29 @@ func (fm *FileMetric) FileABCMetric() (fileABCMetric ABCMetric) {
 	return fm.fileABCMetric
 }
 
+func (fm *FileMetric) FileHalstead() (fileHalstead HalsteadMetric) {
+	return fm.fileHalstead
+}
+
 func (fm *FileMetric) GenerateMetrics(tree *ast.File) (err error) {
 	// Basic code metrics: imports, functions, structures
+	fmt.Printf("--- %s\n", fm.fileName)
 	ast.Inspect(tree, func(n ast.Node) bool {
 		switch n.(type) {
 		case *ast.ImportSpec:
 			fm.nrOfImports++
 		case *ast.FuncDecl:
 			fm.nrOfFunctionDeclarations++
+			// We generate the ABC metric on the function level
 			fm.GenerateABCMetrics(n)
 		case *ast.StructType:
 			fm.nrOfStructs++
 		}
+		return true
+	})
+	// Calculate the Halstead metric on the file
+	ast.Inspect(tree, func(n ast.Node) bool {
+		fm.GenerateHalsteadMetrics(n)
 		return true
 	})
 	// Calculate ABC metrics for the file
@@ -67,6 +81,10 @@ func (fm *FileMetric) GenerateABCMetrics(node ast.Node) {
 	var abcm = ABCMetric{}
 	ast.Walk(&abcm, node)
 	fm.abcMetrics = append(fm.abcMetrics, abcm)
+}
+
+func (fm *FileMetric) GenerateHalsteadMetrics(node ast.Node) {
+	ast.Walk(&fm.fileHalstead, node)
 }
 
 func (fm *FileMetric) CodeSize() (codeSize int) {
