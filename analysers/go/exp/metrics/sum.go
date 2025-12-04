@@ -3,6 +3,7 @@ package metrics
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"sort"
 )
 
@@ -13,6 +14,7 @@ const (
 	CC_HIGH     int     = 50 // High Cyclomatic Complexity
 	CC_TOP_N    int     = 10 // Top N functions to check for Cyclomatic Complexity concentration
 	ABC_T_HIGH  float64 = 15 // Threshold for a high ABC Code Size (suggested)
+	KLOC_MAGN   int     = 1  // The magnitude for kLOC
 )
 
 // Weights
@@ -58,6 +60,7 @@ type SummaryMetrics struct {
 func (sm *SummaryMetrics) CalculateMetrics(fileMetrics []FileMetric) {
 	// Reset
 	*sm = SummaryMetrics{}
+	var kLocMagnitude float64 = float64(KLOC_MAGN * 1000)
 
 	var (
 		totalCodeLOC    int
@@ -116,7 +119,7 @@ func (sm *SummaryMetrics) CalculateMetrics(fileMetrics []FileMetric) {
 		eff := fm.fileHalstead.Effort()
 		halEffortValues = append(halEffortValues, eff)
 		if codeLOC > 0 {
-			halEffortPerK = append(halEffortPerK, eff/(float64(codeLOC)/1000))
+			halEffortPerK = append(halEffortPerK, eff/(float64(codeLOC)/kLocMagnitude))
 		}
 
 		if codeLOC+commentLOC > 0 {
@@ -125,12 +128,12 @@ func (sm *SummaryMetrics) CalculateMetrics(fileMetrics []FileMetric) {
 		}
 	}
 
-	kLOC := float64(totalCodeLOC) / 1000
-	totalCC := sumFloat64(ccValues)
+	kLOC := float64(totalCodeLOC) / kLocMagnitude
+	totalCC := sumFloatBig(ccValues)
 
 	// Cyclomatic complexity metrics
 	if kLOC > 0 {
-		sm.cyclDestinyPerkLOC = totalCC / kLOC
+		sm.cyclDestinyPerkLOC = div(totalCC, kLOC)
 	}
 	sm.cyclCAverage = meanFloat64(ccValues)
 	sm.cyclCMedian = medianFloat64(ccValues)
@@ -142,8 +145,12 @@ func (sm *SummaryMetrics) CalculateMetrics(fileMetrics []FileMetric) {
 
 	// Halstead metrics
 	if kLOC > 0 {
-		sm.halVolumePerkLOC = sumFloat64(halVolumeValues) / kLOC
-		sm.halEffortPerkLOC = sumFloat64(halEffortValues) / kLOC
+		sm.halVolumePerkLOC = div(sumFloatBig(halVolumeValues), kLOC)
+		fmt.Printf("--- sm.halVolumePerkLOC %f\n", sm.halVolumePerkLOC)
+		sm.halEffortPerkLOC = div(sumFloatBig(halEffortValues), kLOC)
+		fmt.Printf("--- sm.halEffortPerkLOC %f\n", sm.halEffortPerkLOC)
+	} else {
+		fmt.Printf("!!! halVolumePerkLOC & halEffortPerkLOC is not calculated !!!")
 	}
 	// As requested: median CC over functions with ABC code size > 0
 	sm.halDifMedian = medianFloat64(ccValues)
@@ -151,7 +158,7 @@ func (sm *SummaryMetrics) CalculateMetrics(fileMetrics []FileMetric) {
 	// ABC metrics
 	sm.abcCodeSizePerFun = medianFloat64(abcValues)
 	if len(abcValues) > 0 {
-		sm.abcBranCondRatio = sumFloat64(abcValues) / float64(len(abcValues))
+		sm.abcBranCondRatio = div(sumFloatBig(abcValues), float64(len(abcValues)))
 		sm.abcHighRate = float64(countAbove(abcValues, ABC_T_HIGH)) / float64(len(abcValues))
 	}
 
@@ -177,6 +184,7 @@ func (sm *SummaryMetrics) CalculateMetrics(fileMetrics []FileMetric) {
 	zHalEff := zScore(sm.halEffortPerkLOC, halEffortPerK)
 	zComment := zScore(sm.commentDensity, commentDensities)
 
+	// TODO: can return NaN, should use "math/big"
 	sm.compositeScore = float64(W_CC_MEDIAN)*zMedianCC +
 		float64(W_CC_P95)*zP95CC +
 		float64(W_ABC_FUN)*zABC +
@@ -204,12 +212,17 @@ func ccConcentration(values []float64, topN int) float64 {
 	sort.Slice(sorted, func(i, j int) bool { return sorted[i] > sorted[j] })
 
 	limit := minInt(topN, len(sorted))
-	topSum := sumFloat64(sorted[:limit])
-	total := sumFloat64(sorted)
-	if total == 0 {
-		return 0
+	topSum := sumFloatBig(sorted[:limit])
+	total := sumFloatBig(sorted)
+
+	var bconc = topSum.Quo(topSum, total)
+	var fconc, acc = bconc.Float64()
+	if acc == big.Exact {
+		return fconc
+	} else {
+		fmt.Printf("--- CommentConcentration can't be calcuated (yet).")
+		return math.NaN()
 	}
-	return topSum / total
 }
 
 func countAbove(values []float64, threshold float64) int {
@@ -222,19 +235,38 @@ func countAbove(values []float64, threshold float64) int {
 	return count
 }
 
-func sumFloat64(values []float64) float64 {
-	var sum float64
+func sumFloatBig(values []float64) (sum *big.Float) {
+	sum = new(big.Float)
 	for _, v := range values {
-		sum += v
+		if math.IsNaN(v) {
+			// TODO: apparently volume can be NaN, should bring the big (guns)
+			v = 0
+		}
+		var bv = new(big.Float).SetFloat64(v)
+		sum.Add(sum, bv)
 	}
 	return sum
+}
+
+func div(x *big.Float, y float64) float64 {
+	var by = new(big.Float).SetFloat64(y)
+	var mean, acc = x.Quo(x, by).Float64()
+
+	if acc == big.Exact {
+		// The result can be represented as a float64
+		return mean
+	} else {
+		fmt.Printf("--- Value can't be calcuated (yet).")
+		return math.NaN()
+	}
 }
 
 func meanFloat64(values []float64) float64 {
 	if len(values) == 0 {
 		return 0
 	}
-	return sumFloat64(values) / float64(len(values))
+	var sum = sumFloatBig(values)
+	return div(sum, float64(len(values)))
 }
 
 func stddevFloat64(values []float64, mean float64) float64 {
