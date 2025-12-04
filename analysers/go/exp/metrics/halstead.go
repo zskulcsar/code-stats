@@ -158,9 +158,11 @@ func (hm *HalsteadMetric) walkStmt(n ast.Node) {
 			hm.walkExpr(n.Label)
 		}
 	case *ast.BlockStmt:
-		hm.appendValidSymb(n.Lbrace.IsValid(), n.Rbrace.IsValid(), "{}")
-		for _, s := range n.List {
-			hm.walkStmt(s)
+		if n != nil {
+			hm.appendValidSymb(n.Lbrace.IsValid(), n.Rbrace.IsValid(), "{}")
+			for _, s := range n.List {
+				hm.walkStmt(s)
+			}
 		}
 	case *ast.IfStmt:
 		if n.If.IsValid() {

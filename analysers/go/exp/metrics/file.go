@@ -14,6 +14,7 @@ type FileMetric struct {
 	cycloCMetric  []CyclomaticComplexityMetric
 	// Basic file metrics
 	nrOfImports              int
+	imports                  map[string]int
 	nrOfFunctionDeclarations int
 	nrOfLines                FileClocStat
 	nrOfStructs              int
@@ -26,36 +27,16 @@ func NewFileMetric(fileName string) FileMetric {
 	fm.fileABCMetric = ABCMetric{signature: fileName}
 	fm.fileHalstead.Init()
 	fm.cycloCMetric = make([]CyclomaticComplexityMetric, 0)
+	fm.imports = map[string]int{}
 	return fm
-}
-
-func (fm *FileMetric) FileName() string {
-	return fm.fileName
-}
-
-func (fm *FileMetric) ABCMetrics() (fileABCMetrics []ABCMetric) {
-	return fm.abcMetrics
-}
-
-func (fm *FileMetric) FileABCMetric() (fileABCMetric ABCMetric) {
-	return fm.fileABCMetric
-}
-
-func (fm *FileMetric) FileHalstead() (fileHalstead HalsteadMetric) {
-	return fm.fileHalstead
-}
-
-func (fm *FileMetric) FileCyclomaticComplexity() (cycloComplexity []CyclomaticComplexityMetric) {
-	return fm.cycloCMetric
 }
 
 func (fm *FileMetric) GenerateMetrics(tree *ast.File) (err error) {
 	// Basic code metrics: imports, functions, structures
-	fmt.Printf("--- %s\n", fm.fileName)
 	ast.Inspect(tree, func(n ast.Node) bool {
-		switch n.(type) {
+		switch t := n.(type) {
 		case *ast.ImportSpec:
-			fm.nrOfImports++
+			fm.imports[t.Path.Value]++
 		case *ast.FuncDecl:
 			fm.nrOfFunctionDeclarations++
 			// We generate the ABC metric on the function level
@@ -67,6 +48,7 @@ func (fm *FileMetric) GenerateMetrics(tree *ast.File) (err error) {
 		}
 		return true
 	})
+	fm.nrOfImports = len(fm.imports)
 	// Calculate the Halstead metric on the file
 	ast.Inspect(tree, func(n ast.Node) bool {
 		fm.GenerateHalsteadMetrics(n)
@@ -105,14 +87,14 @@ func (fm *FileMetric) CodeSize() (codeSize int) {
 
 func (fm *FileMetric) calcABCSum() (fileABCM ABCMetric) {
 	for _, abcm := range fm.abcMetrics {
-		fm.fileABCMetric.AssingmentAdd(abcm.Assingments())
-		fm.fileABCMetric.BranchAdd(abcm.Branches())
-		fm.fileABCMetric.ConditionAdd(abcm.Conditionals())
+		fm.fileABCMetric.AssingmentAdd(abcm.assingments)
+		fm.fileABCMetric.BranchAdd(abcm.branches)
+		fm.fileABCMetric.ConditionAdd(abcm.conditionals)
 	}
 	return fm.fileABCMetric
 }
 
 func (fm *FileMetric) String() string {
 	return fmt.Sprintf("File,\"%s\",%d,%d,%d,%d",
-		fm.FileName(), fm.nrOfImports, fm.nrOfFunctionDeclarations, fm.nrOfLines.Go.Code, fm.nrOfStructs)
+		fm.fileName, fm.nrOfImports, fm.nrOfFunctionDeclarations, fm.nrOfLines.Go.Code, fm.nrOfStructs)
 }

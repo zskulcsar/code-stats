@@ -70,24 +70,12 @@ func (abcm *ABCMetric) Visit(node ast.Node) (w ast.Visitor) {
 	return abcm
 }
 
-func (abcm *ABCMetric) Signature() string {
-	return abcm.signature
-}
-
-func (abcm *ABCMetric) Assingments() int {
-	return abcm.assingments
-}
-
 func (abcm *ABCMetric) Assingment() {
 	abcm.assingments++
 }
 
 func (abcm *ABCMetric) AssingmentAdd(a int) {
 	abcm.assingments += a
-}
-
-func (abcm *ABCMetric) Branches() int {
-	return abcm.branches
 }
 
 func (abcm *ABCMetric) Branch() {
@@ -104,10 +92,6 @@ func (abcm *ABCMetric) Conditional() {
 
 func (abcm *ABCMetric) ConditionAdd(c int) {
 	abcm.conditionals += c
-}
-
-func (abcm *ABCMetric) Conditionals() int {
-	return abcm.conditionals
 }
 
 func (abcm *ABCMetric) CodeSize() int {
