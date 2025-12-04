@@ -1,0 +1,40 @@
+# {{ .Project }}
+
+| Metric | Value |
+|--------|-------|
+| Composite score | {{printf "%.2f" .CompositeScore }} |
+
+
+## Simple metrics
+
+| Metric | Value |
+|--------|-------|
+| Nr. of Files | {{printf "%d" .TotalNrOfFiles }} |
+| Total lines of code | {{printf "%d" .TotalCodeLOC }} |
+| Total lines of comment | {{printf "%d" .TotalCommentLOC }} |
+| Nr. of Imports | {{printf "%d" .NrOfDImports }} |
+| Nr. of Structs | {{printf "%d" .NrOfStructs }} |
+| Total nr. of Functions | {{printf "%d" .NrOfFunctions }} |
+| Nr. of complex Fcuntions | {{printf "%d" .NrOfComplexFuncs }} |
+| Median nr. of Functions / file | {{printf "%.2f" .FunPerFMedian}} |
+| Median nr. of Structs / file | {{printf "%.2f" .StrucPerFMedian }} |
+| Median nr. of lines / function | {{printf "%.2f" .LocPerFMedian }} |
+| Comment density | {{printf "%.2f" .CommentDensity }} |
+
+## Calculated metrics
+
+| Metric | Value |
+|--------|-------|
+| CC density (per kLOC) | {{printf "%.2f" .CyclDestinyPerkLOC }} |
+| CC average | {{printf "%.2f" .CyclCAverage }} |
+| CC median | {{printf "%.2f" .CyclCMedian }} |
+| CC P95 | {{printf "%.2f" .CyclCP95 }} |
+| CC high-rate (>50) | {{printf "%.2f" .CyclCHighRate }} |
+| CC concentration (top 10) | {{printf "%.2f" .CyclCConcentration }} |
+| Halstead volume per kLOC | {{printf "%.2f" .HalVolumePerkLOC }} |
+| Halstead effort per kLOC | {{printf "%.2f" .HalEffortPerkLOC }} |
+| Halstead difficulty (median CC) | {{printf "%.2f" .HalDifMedian }} |
+| ABC code size per function (median) | {{printf "%.2f" .ABCCodeSizePerFun }} |
+| ABC code size average | {{printf "%.2f" .ABCBranCondRatio }} |
+| ABC high-rate | {{printf "%.2f" .ABCHighRate }} |
+	
