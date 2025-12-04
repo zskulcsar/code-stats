@@ -3,31 +3,33 @@ package main
 import (
 	"flag"
 	"fmt"
-	"go/parser"
-	"go/token"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"text/template"
 
 	"github.com/zkulcsar/metrics/exp/metrics"
 )
 
+const (
+	WORKER_PERCENT float64 = 0.8 // The percentage of the total number of cores to be used
+)
+
 func main() {
-	filename := flag.String("f", "", "Go source file to parse")
 	dirname := flag.String("d", "", "Directory containing Go files to parse")
+	// We default to WORKER_PERCENT (80) percent of the available cores, unless it's explicitly set
+	nrOfWorkers := flag.Int("w", int(math.Floor(float64(runtime.NumCPU())*WORKER_PERCENT)), "Nr of workers")
 	flag.Parse()
 
 	fileMetrics := make([]metrics.FileMetric, 0)
+	paths := make([]string, 0)
 	switch {
 	// At least one has to be specified
-	case *filename == "" && *dirname == "":
+	case *dirname == "":
 		flag.Usage()
-		os.Exit(1)
-	// Both can't be specified
-	case *filename != "" && *dirname != "":
-		fmt.Fprintln(os.Stderr, "please specify only one of -f or -d")
 		os.Exit(1)
 	// Check directory & walk
 	case *dirname != "":
@@ -41,40 +43,21 @@ func main() {
 			os.Exit(1)
 		}
 		//fmt.Fprintf(os.Stdout, "*** walking directory %s\n", *dirname)
-		if err := walkDir(*dirname, &fileMetrics); err != nil {
+		if err := collectPaths(*dirname, &paths); err != nil {
 			fmt.Fprintf(os.Stdout, "walk directory %q: %v\n", *dirname, err)
 			os.Exit(1)
 		}
-	// Check the file
-	case *filename != "":
-		if _, err := os.Stat(*filename); err != nil {
-			fmt.Fprintf(os.Stderr, "file %q not found: %v\n", *filename, err)
-			os.Exit(1)
-		}
-		//fmt.Fprintf(os.Stdout, "*** parsing file %s\n", *filename)
-		fm, err := parse(*filename)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "parse %q: %v\n", *filename, err)
-			os.Exit(1)
-		}
-		fileMetrics = append(fileMetrics, fm)
 	}
 
-	// Stats:
-	// fmt.Printf("\n*** Printing stats.\n\n")
-	// for _, fm := range fileMetrics {
-	// 	fmt.Printf("%s\n", fm.String())
-	// 	var fileABCMetric = fm.FileABCMetric()
-	// 	fmt.Printf("%s\n", fileABCMetric.String())
-	// 	var fileHalsteadMetric = fm.FileHalstead()
-	// 	fmt.Printf("%s\n", fileHalsteadMetric.String())
-	// 	// Kinda ugly, but for testing it's fine
-	// 	ccms := fm.FileCyclomaticComplexity()
-	// 	for i, abcm := range fm.ABCMetrics() {
-	// 		fmt.Printf("\t%s\n", abcm.String())
-	// 		fmt.Printf("\t%s\n", ccms[i].String())
-	// 	}
-	// }
+	if len(paths) > 0 {
+		var err error
+		fmt.Printf("Parsing the '%s' folder with %d workers.\n", *dirname, *nrOfWorkers)
+		fileMetrics, err = parseConcurrently(paths, *nrOfWorkers)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "parse files: %v\n", err)
+			os.Exit(1)
+		}
+	}
 
 	var sm = metrics.SummaryMetrics{}
 	sm.CalculateMetrics(fileMetrics)
@@ -83,6 +66,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "parse template: %v\n", err)
 		os.Exit(1)
 	}
+	// TODO: do better, SummaryMetrics should handle all of this
 	data := struct {
 		Project            string
 		CompositeScore     float64
@@ -136,12 +120,14 @@ func main() {
 		ABCBranCondRatio:   sm.ABCBranCondRatio(),
 		ABCHighRate:        sm.ABCHighRate(),
 	}
+	// TODO: add the option to generate into a file
 	if err := tmpl.Execute(os.Stdout, data); err != nil {
+		// TODO: after this all of it should be handled as log rather than \W?[p]rintf()
 		fmt.Fprintf(os.Stderr, "execute template: %v\n", err)
 	}
 }
 
-func walkDir(root string, fileMetrics *[]metrics.FileMetric) error {
+func collectPaths(root string, paths *[]string) error {
 	filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -157,25 +143,8 @@ func walkDir(root string, fileMetrics *[]metrics.FileMetric) error {
 			// Skipping over "test" files
 			return nil
 		}
-		fm, err := parse(path)
-		if err != nil {
-			return fmt.Errorf("%s: %w", path, err)
-		}
-		*fileMetrics = append(*fileMetrics, fm)
+		*paths = append(*paths, path)
 		return nil
 	})
 	return nil
-}
-
-func parse(filename string) (fm metrics.FileMetric, err error) {
-	fset := token.NewFileSet()
-	tree, err := parser.ParseFile(fset, filename, nil, parser.AllErrors)
-	if err != nil {
-		return
-	}
-	//ast.Print(fset, tree)
-
-	fm = metrics.NewFileMetric(filename)
-	fm.GenerateMetrics(tree)
-	return
 }
