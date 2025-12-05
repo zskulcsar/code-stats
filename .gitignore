@@ -8,5 +8,10 @@
 **/.gocache
 **/dist
 
+# Python
+**/.venv
+**/.pycache
+**/.ruff_cache
+
 # Other
 **/tmp
