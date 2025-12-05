@@ -22,7 +22,7 @@ help: ## List available make targets with descriptions.
 
 ## Development targets
 fmt-py: .venv ## Run `ruff format` over Python sources
-	$(UV) run ruff format -s
+	$(UV) run ruff format
 
 run: fmt-py ## Runs the code analyser with the PARAMS passed
 	$(UV) run python -m main --log=${LOG_LEVEL} $(PARAMS)
