@@ -32,6 +32,12 @@ def main():
     fms = FileMetrics(args.filename)
     fms.generate_metrics()
 
+    print_metrics(fms)
+
+
+def print_metrics(fms: FileMetrics):
+    print(f"File metrics: {fms}")
+
 
 if __name__ == "__main__":
     main()
