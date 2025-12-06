@@ -51,5 +51,4 @@ def _file_cloc(file_name: str) -> FileClocStat:
     cp.check_returncode()
     if cp.returncode != 0:
         raise ChildProcessError(cp.stderr)
-    return FileClocStat.from_json(cp.stdout)
-    # return FileClocStat.from_json(out.stdout)
+    return FileClocStat.from_json(cp.stdout)  # type: ignore

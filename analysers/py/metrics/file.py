@@ -1,7 +1,7 @@
 import ast
 from collections import Counter
 from logging import getLogger
-from .cloc import _file_cloc
+from .cloc import _file_cloc, FileClocStat
 
 log = getLogger(__name__)
 
@@ -10,19 +10,19 @@ class FileMetrics(ast.NodeVisitor):
     """Simple file based metrics"""
 
     def __init__(self, filename: str) -> None:
-        self.filename = filename
+        self.filename: str = filename
         self.fileabcmetric = None
-        self.abcmetrics = None  #   []ABCMetric
-        self.filehalstead = None  # HalsteadMetric
-        self.cyclocmetric = None  # []CyclomaticComplexityMetric
+        self.abcmetrics = None
+        self.filehalstead = None
+        self.cyclocmetric = None
         # Basic file metrics
-        self.nrofimports = 0
-        self.imports = Counter()
+        self.nrofimports: int = 0
+        self.imports: Counter[str] = Counter()
         self.nroffunctiondeclarations = 0
-        self.nrOflines = None  #                FileClocStat
-        self.classses = Counter()  #              int
+        self.nrOflines: FileClocStat
+        self.classses: Counter[str] = Counter()
         # Formatting
-        self.tabs = -1
+        self.tabs: int = -1
 
     def generate_metrics(self):
         file = None
@@ -35,7 +35,7 @@ class FileMetrics(ast.NodeVisitor):
             self.visit(root)
         finally:
             # TODO: close the file
-            if file != None:
+            if file is not None:
                 file.close()
 
         # set the metrics
