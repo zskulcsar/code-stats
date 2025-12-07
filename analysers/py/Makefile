@@ -24,6 +24,12 @@ help: ## List available make targets with descriptions.
 fmt-py: .venv ## Run `ruff format` over Python sources
 	$(UV) run ruff format
 
+lint-py: .venv fmt-py ## Run `ruff check` over Python sources. Pass `FIX=--FIX` to automatically fix the errors
+	$(UV) run ruff check . $(FIX)
+
+tc-py: .venv fmt-py ## Run `mypy` over Python sources
+	$(UV) run mypy .
+
 run: fmt-py ## Runs the code analyser with the PARAMS passed
 	$(UV) run python -m main --log=${LOG_LEVEL} $(PARAMS)
 
