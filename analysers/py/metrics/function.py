@@ -16,14 +16,14 @@ log = getLogger(__name__)
 # # Conditionals
 #   - Occurrence of a conditional operator
 #   - Occurrence of the following keywords: 'if', 'else', 'elif', 'except', 'case' as in ast.match_case.
-class ABCMetric(ast.NodeVisitor):
+class FunctionMetrics(ast.NodeVisitor):
     def __init__(self, signature: str | None, a=0, b=0, c=0) -> None:
         self.signature = signature
-        # Metrics
+        # ABC Metrics
         self.assingments = a
         self.branches = b
         self.conditionals = c
-        # Code size
+        # ABC Code Size
         self.__code_size: float = 0
         self.code_size()
 
@@ -55,6 +55,10 @@ class ABCMetric(ast.NodeVisitor):
         self.conditionals += 1
         return super().generic_visit(node)
 
+    def visit_For(self, node: ast.For) -> Any:
+        self.conditionals += 1
+        return super().generic_visit(node)
+
     def visit_match_case(self, node: ast.match_case) -> Any:
         self.conditionals += 1
         return super().generic_visit(node)
@@ -69,6 +73,10 @@ class ABCMetric(ast.NodeVisitor):
             )
         return self.__code_size
 
+    def cyclomatic_complexity(self) -> int:
+        # Things is ... conditionals and Cyclomatic Complexity are the same
+        return self.conditionals
+
     def __str__(self) -> str:
         return (
             f"ABC,"
@@ -76,5 +84,6 @@ class ABCMetric(ast.NodeVisitor):
             f"{self.code_size()},"
             f"{self.assingments},"
             f"{self.branches},"
-            f"{self.conditionals}"
+            f"{self.conditionals}\n\t"
+            f"CYC,{self.signature},{self.conditionals}"
         )

@@ -3,9 +3,10 @@ from typing import Any
 from collections import Counter
 from logging import getLogger
 from .cloc import _file_cloc, FileClocStat
-from .abc import ABCMetric
+from .function import FunctionMetrics
 
 log = getLogger(__name__)
+
 
 class FileMetrics(ast.NodeVisitor):
     """Simple file based metrics"""
@@ -15,7 +16,7 @@ class FileMetrics(ast.NodeVisitor):
         self.__fileabcmetric = None
         # To be fair: we can just iterate over the file and how Python is
         # that is likely better anyways
-        self.abcmetrics: list[ABCMetric] = []
+        self.fun_metrics: list[FunctionMetrics] = []
         self.filehalstead = None
         self.cyclocmetric = None
         # Basic file metrics
@@ -90,11 +91,11 @@ class FileMetrics(ast.NodeVisitor):
         a = 0
         b = 0
         c = 0
-        for abcm in self.abcmetrics:
+        for abcm in self.fun_metrics:
             a += abcm.assingments
             b += abcm.branches
             c += abcm.conditionals
-        self.__fileabcmetric = ABCMetric(self.filename, a, b, c)
+        self.__fileabcmetric = FunctionMetrics(self.filename, a, b, c)
 
     def __count_imports(self, imp: ast.Import | ast.ImportFrom):
         for alias in imp.names:
@@ -115,16 +116,13 @@ class FileMetrics(ast.NodeVisitor):
     def __abc_metric(self, node: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda):
         self.nroffunctiondeclarations += 1
         if isinstance(node, ast.Lambda):
-            abc = ABCMetric("lambda")
+            abc = FunctionMetrics("lambda")
         else:
-            abc = ABCMetric(node.name)
-        self.abcmetrics.append(abc)
+            abc = FunctionMetrics(node.name)
+        self.fun_metrics.append(abc)
         abc.generic_visit(node)
 
     def __str__(self) -> str:
-        for fun_abc in self.abcmetrics:
-            log.debug(f"fun_abc :: {fun_abc}")
-
         return (
             f"File,"
             f"{self.filename},"
@@ -133,5 +131,5 @@ class FileMetrics(ast.NodeVisitor):
             f"{self.nrOflines.Python.code},"
             f"{self.__nr_of_classes()},\n\t"
             f"{self.__fileabcmetric},\n\t"
-            f"{'\t'.join(str(fabc) + '\n' for fabc in self.abcmetrics)}"
+            f"{'\t'.join(str(fm) + '\n' for fm in self.fun_metrics)}"
         )

@@ -1,4 +1,4 @@
 from .file import FileMetrics
-from .abc import ABCMetric
+from .function import FunctionMetrics
 
-__all__ = ["FileMetrics", "ABCMetric"]
+__all__ = ["FileMetrics", "FunctionMetrics"]
